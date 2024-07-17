@@ -13,7 +13,20 @@ function gotDetections(error, results){
     }
     console.log(results);
     detections = results;
-    detector.detect(video, gotDetections);
+    for(let i = 0; i < detections.length; i++){
+        let object = detections[i];
+        let posx = Math.round((object.width/2 + object.x));
+        let posx_map = Math.round(map(posx, 70, 550, -1, 1)*10)/10.0;
+        if(posx_map > 1.0){
+            posx_map = 1;
+        }
+        else if(posx_map < -1.0){
+            posx_map = -1;
+        };
+        let address = "/object/" + object.label;
+        const message = new OSC.Message(address,posx_map);
+        osc.send(message);
+    }
 }
 
 function setup() {
@@ -21,16 +34,17 @@ function setup() {
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
-    detector.detect(video, gotDetections);
     osc  = new OSC();
     osc.open({ port: 8081 });
+    setInterval(() => {
+        detector.detect(video, gotDetections);
+      }, 500);
 }
 function draw(){
      image(video, 0, 0);
 
      for(let i = 0; i < detections.length; i++){
         let object = detections[i];
-        const message = new OSC.Message("/test", object.label);
         stroke(0, 255, 0);
         strokeWeight(4);
         noFill();
@@ -39,7 +53,6 @@ function draw(){
         fill(255);
         textSize(24);
         text(object.label, object.x, object.y);
-        osc.send(message);
     }
     
  }
